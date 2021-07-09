@@ -412,25 +412,28 @@ object ApiSpecModels {
 
   val apiPusher = ApiPusher(account)
 
+  //have both urls as https, as the expected samples are using https
+  val gitHubContext = JsonFormat.Context("https://api.github.com", Some("https://api.github.com"))
+
   val apiRefHeadsMaster = ApiRef(
     ref = "refs/heads/master",
-    url = "https://api.github.com/repos/gitbucket/gitbucket/git/refs/heads/master",
+    url = ApiPath("/repos/gitbucket/gitbucket/git/refs/heads/master"),
     node_id = "MDM6UmVmOTM1MDc0NjpyZWZzL2hlYWRzL21hc3Rlcg==",
     `object` = ApiRefCommit(
       sha = "6b2d124d092402f2c2b7131caada05ead9e7de6d",
       `type` = "commit",
-      url = "https://api.github.com/repos/gitbucket/gitbucket/git/commits/6b2d124d092402f2c2b7131caada05ead9e7de6d"
+      url = ApiPath("/repos/gitbucket/gitbucket/git/commits/6b2d124d092402f2c2b7131caada05ead9e7de6d")
     )
   )
 
   val apiRefTag = ApiRef(
     ref = "refs/tags/1.0",
-    url = "https://api.github.com/repos/gitbucket/gitbucket/git/refs/tags/1.0",
+    url = ApiPath("/repos/gitbucket/gitbucket/git/refs/tags/1.0"),
     node_id = "MDM6UmVmOTM1MDc0NjpyZWZzL3RhZ3MvMS4w",
     `object` = ApiRefCommit(
       sha = "1f164ecf2f59190afc8d7204a221c739e707df4c",
       `type` = "tag",
-      url = "https://api.github.com/repos/gitbucket/gitbucket/git/tags/1f164ecf2f59190afc8d7204a221c739e707df4c"
+      url = ApiPath("/repos/gitbucket/gitbucket/git/tags/1f164ecf2f59190afc8d7204a221c739e707df4c")
     )
   )
 
