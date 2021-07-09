@@ -134,6 +134,11 @@ class ApiIntegrationTest extends AnyFunSuite {
         assert(statusList.get(1).getState == GHCommitState.FAILURE)
         assert(statusList.get(1).getContext == "context")
       }
+
+      {
+        //get list of all tags
+        repo.
+      }
     }
   }
 
