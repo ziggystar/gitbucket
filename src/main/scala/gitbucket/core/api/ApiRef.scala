@@ -23,18 +23,18 @@ object ApiRef {
     repositoryName: RepositoryName,
     commit: Ref
   ): ApiRef =
-  ApiRef(
-    ref = s"refs/${commit.getName}",
-    url = ApiPath(s"/${repositoryName.fullName}/refs/${commit.getName}").toString,
-    `object` = ApiRefCommit(
-      sha = commit.getObjectId.getName,
-      url = ApiPath(s"/${repositoryName.fullName}/commits/${commit.getObjectId.getName}").toString,
-      `type` = "commit"
+    ApiRef(
+      ref = commit.getName,
+      url = ApiPath(s"/${repositoryName.fullName}/refs/${commit.getName}").path,
+      `object` = ApiRefCommit(
+        sha = commit.getObjectId.getName,
+        url = ApiPath(s"/${repositoryName.fullName}/commits/${commit.getObjectId.getName}").path,
+        `type` = "commit"
+      )
     )
-  )
 
   def fromTag(
-               repositoryName: RepositoryName,
+    repositoryName: RepositoryName,
     tagInfo: TagInfo
   ): ApiRef =
     ApiRef(

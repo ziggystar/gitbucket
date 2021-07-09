@@ -19,7 +19,7 @@ trait ApiGitReferenceControllerBase extends ControllerBase {
 
   private val logger = LoggerFactory.getLogger(classOf[ApiGitReferenceControllerBase])
 
-  def extractRefWithRepo(action: (String, RepositoryInfo, Git) => Unit): Unit =
+  def extractRefWithSplat(action: (String, RepositoryInfo, Git) => Unit): Unit =
     referrersOnly({ repository =>
       val revstr = multiParams("splat").head
       Using.resource(Git.open(getRepositoryDir(repository.owner, repository.name))) { git =>
@@ -31,20 +31,20 @@ trait ApiGitReferenceControllerBase extends ControllerBase {
    * i. Get a reference
    * https://docs.github.com/en/free-pro-team@latest/rest/reference/git#get-a-reference
    */
-  get("/api/v3/repos/:owner/:repository/git/ref/*")(extractRefWithRepo(getRef))
+  get("/api/v3/repos/:owner/:repository/git/ref/*")(extractRefWithSplat(getRef))
 
   // Some versions of GHE support this path
-  get("/api/v3/repos/:owner/:repository/git/refs/*")(extractRefWithRepo { (rev, name, git) =>
+  get("/api/v3/repos/:owner/:repository/git/refs/*")(extractRefWithSplat { (rev, name, git) =>
     logger.warn("git/refs/ endpoint may not be compatible with GitHub API v3. Consider using git/ref/ endpoint instead")
     getRef(rev, name, git)
   })
 
-  private def getRef(revstr: String, repository: RepositoryInfo, git: Git): String = {
-    logger.debug(s"getting refs path '${revstr}'")
+  def getRef(revstr: String, repository: RepositoryInfo, git: Git): String = {
+    logger.debug(s"getRef: path '${revstr}'")
 
     val name = RepositoryName(repository)
 
-    JsonFormat(revstr match {
+    val result = JsonFormat(revstr match {
       case tags if tags == "tags" =>
         repository.tags.map(ApiRef.fromTag(name, _))
       case other =>
@@ -61,6 +61,10 @@ trait ApiGitReferenceControllerBase extends ControllerBase {
             ApiRef.fromRef(name, hit)
         }
     })
+
+    logger.debug(s"json result: $result")
+
+    result
   }
 
   /*
@@ -96,7 +100,7 @@ trait ApiGitReferenceControllerBase extends ControllerBase {
    * iv. Update a reference
    * https://docs.github.com/en/free-pro-team@latest/rest/reference/git#update-a-reference
    */
-  patch("/api/v3/repos/:owner/:repository/git/refs/*")(extractRefWithRepo { (refName, repository, git) =>
+  patch("/api/v3/repos/:owner/:repository/git/refs/*")(extractRefWithSplat { (refName, repository, git) =>
     extractFromJsonBody[UpdateARef].map {
       data =>
         val ref = git.getRepository.findRef(refName)
@@ -120,7 +124,7 @@ trait ApiGitReferenceControllerBase extends ControllerBase {
    * v. Delete a reference
    * https://docs.github.com/en/free-pro-team@latest/rest/reference/git#delete-a-reference
    */
-  delete("/api/v3/repos/:owner/:repository/git/refs/*")(extractRefWithRepo { (refName, _, git) =>
+  delete("/api/v3/repos/:owner/:repository/git/refs/*")(extractRefWithSplat { (refName, _, git) =>
     val ref = git.getRepository.findRef(refName)
     if (ref == null) {
       UnprocessableEntity("Ref does not exist.")
