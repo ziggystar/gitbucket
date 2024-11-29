@@ -28,6 +28,7 @@ import org.eclipse.jgit.util.io.DisabledOutputStream
 import org.slf4j.LoggerFactory
 
 import scala.util.Using.Releasable
+import scala.util.{Try, Using}
 
 /**
  * Provides complex JGit operations.
@@ -659,8 +660,25 @@ object JGitUtil {
     }
   }
 
+  def getCommitLog(git: Git, from: String, to: String): List[CommitInfo] = {
+    def resolveString(name: String): ObjectId = {
+      val objectId = git.getRepository.resolve(name)
+      git.getRepository.open(objectId).getType match {
+        case Constants.OBJ_COMMIT => objectId
+        case Constants.OBJ_TAG =>
+          val ref = git.getRepository.getRefDatabase.findRef(name)
+          git.getRepository.getRefDatabase.peel(ref).getPeeledObjectId
+        case _ => ObjectId.zeroId()
+      }
+    }
+
+    getCommitLog(git, resolveString(from), resolveString(to))
+  }
+
   /**
    * Returns the commit list between two revisions.
+   * This method takes strings as parameters, but does not define what happens when the strings are no valid
+   * commit ids. They can be either invalid syntactically, or they can be not within the repo.
    *
    * @param git the Git object
    * @param from the from revision
@@ -668,8 +686,29 @@ object JGitUtil {
    * @return the commit list
    */
   // TODO swap parameters 'from' and 'to'!?
-  def getCommitLog(git: Git, from: String, to: String): List[CommitInfo] =
-    getCommitLogs(git, to)(_.getName == from)
+  def getCommitLog(git: Git, from: ObjectId, to: ObjectId): List[CommitInfo] =
+    Option(from)
+      .filter(f => f != ObjectId.zeroId)
+      // find the common ancestor of the two commits
+      .flatMap(f =>
+        git
+          .log()
+          .add(f)
+          .add(to)
+          .setRevFilter(RevFilter.MERGE_BASE)
+          .call()
+          .asScala
+          .headOption
+      )
+      .fold(
+        git.log() // no stop condition when merge base with 'from' is not found
+      )(f => git.log().not(f)) // we have a stop condition (start commit)
+      .add(to)
+      .call()
+      .asScala
+      .map(new CommitInfo(_))
+      .toList
+      .reverse
 
   /**
    * Returns the latest RevCommit of the specified path.
